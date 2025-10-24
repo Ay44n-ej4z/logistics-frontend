@@ -52,7 +52,7 @@ export default function CreateUserPage() {
         <div className="card text-center py-12">
           <Icon icon="mdi:lock" className="text-6xl text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-          <p className="text-gray-500">You don't have permission to create users.</p>
+         <p className="text-gray-500">You don&apos;t have permission to create users.</p>
         </div>
       </div>
     }>
