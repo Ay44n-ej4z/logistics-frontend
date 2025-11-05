@@ -20,6 +20,7 @@ import { useSearchableDropdown } from '@/hooks/useSearchableDropdown';
 import { generateAutoNumber } from '@/lib/generateNumber';
 
 // House AWB Schema
+
 const houseAwbSchema = z.object({
   house_number: z.string().min(1, 'House AWB number is required'),
   job_id: z.string().min(1, 'Job is required'),
@@ -392,6 +393,8 @@ export default function CreateHouseAwbPage() {
                   <p className="mt-1 text-sm text-red-600">{errors.issue_date.message}</p>
                 )}
               </div>
+
+              {/* Mode of Transport removed */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

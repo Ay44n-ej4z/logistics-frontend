@@ -76,7 +76,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
           </div>
         </div>
 
-        {/* User Menu */}
+          {/* User Menu */}
         <div className="flex items-center space-x-4">
           {/* Notifications */}
           <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
@@ -88,7 +88,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 transition-colors"
+              className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 transition-colors min-w-[120px]"
             >
               <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
                 <span className="text-sm font-medium text-primary-700">

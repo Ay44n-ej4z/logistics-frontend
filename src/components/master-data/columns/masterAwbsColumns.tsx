@@ -40,6 +40,7 @@ export const createMasterAwbsColumns = (options: CreateColumnsOptions | AppRoute
       );
     },
   },
+  
   {
     accessorKey: 'carrier',
     header: 'Carrier',

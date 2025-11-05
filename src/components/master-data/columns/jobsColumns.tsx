@@ -44,6 +44,7 @@ export const createJobsColumns = (router: AppRouterInstance): ColumnDef<unknown>
       );
     },
   },
+  
   {
     accessorKey: 'consignee',
     header: 'Consignee',
