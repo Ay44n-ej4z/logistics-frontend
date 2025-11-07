@@ -21,6 +21,7 @@ import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { useSearchableDropdown } from '@/hooks/useSearchableDropdown';
 import { generateAutoNumber } from '@/lib/generateNumber';
 
+
 const jobSchema = z.object({
   job_number: z.string().min(1, 'Job number is required'),
   job_type: z.enum(['export', 'import']),
@@ -222,6 +223,8 @@ console.log(898989, portsResponse)
                   <p className="mt-1 text-sm text-red-600">{errors.job_type.message}</p>
                 )}
               </div>
+
+              {/* Mode of Transport removed */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

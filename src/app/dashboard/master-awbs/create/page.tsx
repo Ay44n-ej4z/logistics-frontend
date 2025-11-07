@@ -19,6 +19,7 @@ import { useSearchableDropdown } from '@/hooks/useSearchableDropdown';
 import { generateAutoNumber } from '@/lib/generateNumber';
 
 // Master AWB Schema
+
 const masterAwbSchema = z.object({
   master_number: z.string().min(1, 'Master AWB number is required'),
   job_id: z.string().min(1, 'Job is required'),
@@ -345,6 +346,8 @@ export default function CreateMasterAwbPage() {
                   <p className="mt-1 text-sm text-red-600">{errors.issue_date.message}</p>
                 )}
               </div>
+
+              {/* Mode of Transport removed */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

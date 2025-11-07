@@ -6,15 +6,17 @@ import { motion } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import { useAppSelector, useAppDispatch } from '@/hooks/redux';
 import { logout } from '@/store/slices/authSlice';
-import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import NavigationBar from '@/components/layout/NavigationBar';
 import DashboardContent from '@/components/dashboard/DashboardContent';
+
+import type { ReactElement } from 'react';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
-}) {
+}): ReactElement {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { isAuthenticated, user, isLoading } = useAppSelector((state) => state.auth);
@@ -26,13 +28,18 @@ export default function DashboardLayout({
 
   // Fetch user profile if token exists but no user data
   useEffect(() => {
-    if (isAuthenticated && !user && !isLoading) {
-      console.log('Fetching user profile...');
-      // Trigger profile fetch through the API
-      import('@/store/api/authApi').then(({ authApi }) => {
-        dispatch(authApi.endpoints.getProfile.initiate());
-      });
-    }
+    const fetchProfile = async () => {
+      if (isAuthenticated && !user && !isLoading) {
+        console.log('Fetching user profile...');
+        try {
+          const { authApi } = await import('@/store/api/authApi');
+          await dispatch(authApi.endpoints.getProfile.initiate());
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
+      }
+    };
+    fetchProfile();
   }, [isAuthenticated, user, isLoading, dispatch]);
 
   useEffect(() => {
@@ -58,27 +65,24 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-      <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <Sidebar />
-        
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <Header user={user} onLogout={handleLogout} />
-          
-          <main className="flex-1 p-6 overflow-x-hidden">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="max-w-full"
-            >
-              {children}
-            </motion.div>
-          </main>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <Header user={user} onLogout={handleLogout} />
+      
+      {/* Navigation Bar */}
+      {user && <NavigationBar userRole={user.role} />}
+      
+      {/* Main Content */}
+      <main className="flex-1 p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="max-w-full"
+        >
+          {children}
+        </motion.div>
+      </main>
     </div>
   );
 }
