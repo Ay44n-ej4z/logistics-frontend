@@ -1,70 +1,117 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { Icon } from '@iconify/react';
+import { ModeOfTransport, TransportMode } from '@/types';
 
 interface CreateColumnsOptions {
-  router: AppRouterInstance;
+  onEdit?: (mode: ModeOfTransport) => void;
+  onToggleStatus?: (id: number, currentStatus: boolean, name: string) => void;
 }
 
-export const createModeOfTransportColumns = ({ router }: CreateColumnsOptions): ColumnDef<any>[] => [
+const getModeIcon = (mode: TransportMode) => {
+  switch (mode) {
+    case TransportMode.AIR:
+      return 'mdi:airplane';
+    case TransportMode.SEA:
+      return 'mdi:ferry';
+    case TransportMode.ROAD:
+      return 'mdi:truck';
+    case TransportMode.RAIL:
+      return 'mdi:train';
+    case TransportMode.COURIER:
+      return 'mdi:package-variant';
+    case TransportMode.MULTIMODAL:
+      return 'mdi:transit-connection-variant';
+    default:
+      return 'mdi:swap-horizontal';
+  }
+};
+
+const getModeBadgeColor = (mode: TransportMode) => {
+  switch (mode) {
+    case TransportMode.AIR:
+      return 'bg-sky-100 text-sky-800';
+    case TransportMode.SEA:
+      return 'bg-blue-100 text-blue-800';
+    case TransportMode.ROAD:
+      return 'bg-orange-100 text-orange-800';
+    case TransportMode.RAIL:
+      return 'bg-purple-100 text-purple-800';
+    case TransportMode.COURIER:
+      return 'bg-pink-100 text-pink-800';
+    case TransportMode.MULTIMODAL:
+      return 'bg-indigo-100 text-indigo-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+export const createModeOfTransportColumns = (options?: CreateColumnsOptions): ColumnDef<ModeOfTransport>[] => [
   {
-    accessorKey: 'mode_name',
-    header: 'Mode Name',
-    size: 150,
-    enableSorting: true,
-    enableColumnFilter: true,
-    cell: ({ row }) => {
-      const modeName = row.getValue('mode_name') as string;
-      return (
-        <div className="font-medium text-gray-900 truncate capitalize">
-          {modeName}
+    accessorKey: 'name',
+    header: 'Name',
+    cell: ({ row }) => (
+      <div className="flex items-center">
+        <Icon 
+          icon={getModeIcon(row.original.mode)} 
+          className="w-5 h-5 text-gray-400 mr-3" 
+        />
+        <div className="text-sm font-medium text-gray-900">
+          {row.getValue('name')}
         </div>
-      );
-    },
+      </div>
+    ),
   },
   {
     accessorKey: 'code',
-    header: 'Mode Code',
-    size: 120,
-    enableSorting: true,
-    enableColumnFilter: true,
+    header: 'Code',
+    cell: ({ row }) => (
+      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+        {row.getValue('code')}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'mode',
+    header: 'Mode',
     cell: ({ row }) => {
-      const code = row.getValue('code') as string;
+      const mode = row.getValue('mode') as TransportMode;
       return (
-        <div className="text-sm text-gray-600">
-          {code}
-        </div>
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getModeBadgeColor(mode)}`}>
+          {mode.toUpperCase()}
+        </span>
       );
     },
   },
   {
     accessorKey: 'description',
-    header: 'Description / Notes',
-    size: 250,
-    enableSorting: false,
-    enableColumnFilter: true,
-    cell: ({ row }) => {
-      const description = row.getValue('description') as string;
-      return (
-        <div className="text-sm text-gray-600 truncate">
-          {description || 'No description'}
-        </div>
-      );
-    },
+    header: 'Description',
+    cell: ({ row }) => (
+      <div className="text-sm text-gray-600 max-w-xs truncate">
+        {row.getValue('description') || '-'}
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'sort_order',
+    header: 'Order',
+    cell: ({ row }) => (
+      <div className="text-sm text-gray-900 text-center">
+        {row.getValue('sort_order')}
+      </div>
+    ),
   },
   {
     accessorKey: 'is_active',
-    header: 'Is Active / Status',
-    size: 100,
-    enableSorting: true,
-    enableColumnFilter: false,
+    header: 'Status',
     cell: ({ row }) => {
       const isActive = row.getValue('is_active') as boolean;
       return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+          isActive 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-red-100 text-red-800'
         }`}>
           {isActive ? 'Active' : 'Inactive'}
         </span>
@@ -72,43 +119,32 @@ export const createModeOfTransportColumns = ({ router }: CreateColumnsOptions): 
     },
   },
   {
-    accessorKey: 'associated_carriers',
-    header: 'Associated Carriers',
-    size: 200,
-    enableSorting: false,
-    enableColumnFilter: true,
-    cell: ({ row }) => {
-      const carriers = row.getValue('associated_carriers') as string[];
-      return (
-        <div className="text-xs text-gray-700 truncate">
-          {carriers && carriers.length > 0 ? carriers.join(', ') : 'None'}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: 'actions',
+    id: 'actions',
     header: 'Actions',
-    size: 120,
     cell: ({ row }) => {
-      const id = row.original.mode_id;
-      const isActive = row.original.is_active;
-      // Only show actions for admin/master data users (add your permission logic here)
+      const mode = row.original;
       return (
-        <div className="flex gap-2">
+        <div className="flex items-center space-x-2">
           <button
-            className="icon-btn"
+            onClick={() => options?.onEdit?.(mode)}
+            className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded"
             title="Edit"
-            onClick={() => router.push(`/mode-of-transport/edit/${id}`)}
           >
-            <Icon icon="mdi:pencil" className="w-4 h-4 text-blue-600" />
+            <Icon icon="mdi:pencil" className="w-4 h-4" />
           </button>
           <button
-            className="icon-btn"
-            title={isActive ? 'Disable' : 'Enable'}
-            // TODO: Implement enable/disable logic/modal
+            onClick={() => options?.onToggleStatus?.(mode.id, mode.is_active, mode.name)}
+            className={`p-1 rounded ${
+              mode.is_active 
+                ? 'text-orange-600 hover:text-orange-900 hover:bg-orange-50' 
+                : 'text-green-600 hover:text-green-900 hover:bg-green-50'
+            }`}
+            title={mode.is_active ? 'Deactivate' : 'Activate'}
           >
-            <Icon icon={isActive ? 'mdi:toggle-switch' : 'mdi:toggle-switch-off-outline'} className={`w-5 h-5 ${isActive ? 'text-green-600' : 'text-gray-400'}`} />
+            <Icon 
+              icon={mode.is_active ? 'mdi:toggle-switch' : 'mdi:toggle-switch-off-outline'} 
+              className="w-5 h-5" 
+            />
           </button>
         </div>
       );

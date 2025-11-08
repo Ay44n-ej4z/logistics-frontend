@@ -80,6 +80,17 @@ export interface PartySearchParams {
   sort_dir?: 'ASC' | 'DESC';
 }
 
+export interface ModeOfTransportSearchParams {
+  id?: number;
+  name?: string;
+  code?: string;
+  mode?: TransportMode;
+  page?: number;
+  page_size?: number;
+  sort_by?: string;
+  sort_dir?: 'ASC' | 'DESC';
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;
@@ -208,6 +219,18 @@ export interface Party {
   is_active: boolean;
 }
 
+export interface ModeOfTransport {
+  id: number;
+  name: string;
+  code: string;
+  mode: TransportMode;
+  description?: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // Enums
 export enum PartyType {
   CONSIGNEE = 'consignee',
@@ -226,6 +249,15 @@ export enum CarrierType {
 export enum PortOrAirportType {
   PORT = 'port',
   AIRPORT = 'airport',
+}
+
+export enum TransportMode {
+  AIR = 'air',
+  SEA = 'sea',
+  ROAD = 'road',
+  RAIL = 'rail',
+  COURIER = 'courier',
+  MULTIMODAL = 'multimodal',
 }
 
 // Create DTOs
@@ -275,6 +307,15 @@ export interface CreatePartyDto {
   contact_person?: string;
   phone?: string;
   email?: string;
+}
+
+export interface CreateModeOfTransportDto {
+  name: string;
+  code: string;
+  mode: TransportMode;
+  description?: string;
+  sort_order?: number;
+  is_active?: boolean;
 }
 
 // Dashboard Types

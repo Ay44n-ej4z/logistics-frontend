@@ -7,12 +7,14 @@ import {
   Carrier,
   Commodity,
   Party,
+  ModeOfTransport,
   CreateCountryDto,
   CreateCityDto,
   CreatePortAirportDto,
   CreateCarrierDto,
   CreateCommodityDto,
   CreatePartyDto,
+  CreateModeOfTransportDto,
   ApiResponse,
   PaginationParams,
   PaginatedResponse,
@@ -22,6 +24,7 @@ import {
   CarrierSearchParams,
   CommoditySearchParams,
   PartySearchParams,
+  ModeOfTransportSearchParams,
 } from '@/types';
 
 const baseQuery = createBaseQueryWithReauth(
@@ -31,7 +34,7 @@ const baseQuery = createBaseQueryWithReauth(
 export const masterDataApi = createApi({
   reducerPath: 'masterDataApi',
   baseQuery,
-  tagTypes: ['Country', 'City', 'PortAirport', 'Carrier', 'Commodity', 'Party'],
+  tagTypes: ['Country', 'City', 'PortAirport', 'Carrier', 'Commodity', 'Party', 'ModeOfTransport'],
   endpoints: (builder) => ({
     // Countries
     getCountries: builder.query<ApiResponse<PaginatedResponse<Country>>, PaginationParams>({
@@ -290,6 +293,43 @@ export const masterDataApi = createApi({
       }),
       invalidatesTags: ['Party'],
     }),
+
+    // Mode of Transport
+    getModesOfTransport: builder.query<ApiResponse<ModeOfTransport[]>, void>({
+      query: () => '/master/mode-of-transport',
+      providesTags: ['ModeOfTransport'],
+    }),
+    searchModesOfTransport: builder.query<any, ModeOfTransportSearchParams>({
+      query: (params) => ({
+        url: '/master/mode-of-transport/search',
+        params,
+      }),
+      transformResponse: (response: any) => {
+        console.log('Raw API Response:', response);
+        return response;
+      },
+      providesTags: ['ModeOfTransport'],
+    }),
+    getModeOfTransportById: builder.query<ApiResponse<ModeOfTransport>, number>({
+      query: (id) => `/master/mode-of-transport/${id}`,
+      providesTags: ['ModeOfTransport'],
+    }),
+    createModeOfTransport: builder.mutation<ApiResponse<ModeOfTransport>, CreateModeOfTransportDto>({
+      query: (data) => ({
+        url: '/master/mode-of-transport',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['ModeOfTransport'],
+    }),
+    updateModeOfTransport: builder.mutation<ApiResponse<ModeOfTransport>, { id: number; data: Partial<CreateModeOfTransportDto> }>({
+      query: ({ id, data }) => ({
+        url: `/master/mode-of-transport/${id}`,
+        method: 'PATCH',
+        body: data,
+      }),
+      invalidatesTags: ['ModeOfTransport'],
+    }),
   }),
 });
 
@@ -341,4 +381,11 @@ export const {
   useCreatePartyMutation,
   useUpdatePartyMutation,
   useDeletePartyMutation,
+
+  // Mode of Transport
+  useGetModesOfTransportQuery,
+  useSearchModesOfTransportQuery,
+  useGetModeOfTransportByIdQuery,
+  useCreateModeOfTransportMutation,
+  useUpdateModeOfTransportMutation,
 } = masterDataApi;
