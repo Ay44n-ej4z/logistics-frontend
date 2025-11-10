@@ -138,10 +138,11 @@ export default function NavigationBar({ userRole }: NavigationBarProps) {
     },
     {
       name: "Mode of Transport",
-      href: "/mode-of-transport",
+      href: "/dashboard/mode-of-transport",
       icon: "mdi:truck",
       submenu: [
-        { name: "View All", href: "/mode-of-transport" },
+        { name: "View All", href: "/dashboard/mode-of-transport" },
+        { name: "Create New", href: "/dashboard/mode-of-transport?create=true" },
       ],
     },
     {

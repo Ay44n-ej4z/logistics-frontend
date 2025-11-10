@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CarrierType, PortOrAirportType, PartyType } from '@/types';
+import { CarrierType, PortOrAirportType, PartyType, TransportMode } from '@/types';
 
 // Auth Schemas
 export const loginSchema = z.object({
@@ -73,6 +73,20 @@ export const createPartySchema = z.object({
   email: z.string().email('Invalid email address').optional(),
 });
 
+export const createModeOfTransportSchema = z.object({
+  name: z.string().min(2, 'Mode name must be at least 2 characters'),
+  code: z.string()
+    .min(2, 'Code must be at least 2 characters')
+    .max(20, 'Code must not exceed 20 characters')
+    .transform(val => val.toUpperCase()),
+  mode: z.nativeEnum(TransportMode, {
+    errorMap: () => ({ message: 'Invalid transport mode' }),
+  }),
+  description: z.string().optional(),
+  sort_order: z.number().min(0, 'Sort order must be non-negative').optional(),
+  is_active: z.boolean().optional(),
+});
+
 // Type exports
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
@@ -82,6 +96,7 @@ export type CreatePortAirportFormData = z.infer<typeof createPortAirportSchema>;
 export type CreateCarrierFormData = z.infer<typeof createCarrierSchema>;
 export type CreateCommodityFormData = z.infer<typeof createCommoditySchema>;
 export type CreatePartyFormData = z.infer<typeof createPartySchema>;
+export type CreateModeOfTransportFormData = z.infer<typeof createModeOfTransportSchema>;
 
 // Re-export types from main types file
-export { CarrierType, PortOrAirportType, PartyType } from '@/types';
+export { CarrierType, PortOrAirportType, PartyType, TransportMode } from '@/types';

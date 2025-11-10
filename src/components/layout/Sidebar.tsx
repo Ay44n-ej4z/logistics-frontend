@@ -48,7 +48,11 @@ const getNavigationItems = (userRole: UserRole): NavigationItem[] => {
         name: "Mode of Transport",
         href: "/dashboard/mode-of-transport",
         icon: "mdi:truck-fast",
-        hasSubmenu: false,
+        hasSubmenu: true,
+        submenu: [
+          { name: "View All", href: "/dashboard/mode-of-transport" },
+          { name: "Create New", href: "/dashboard/mode-of-transport?create=true" },
+        ],
       },
       {
         name: "Master AWB",
