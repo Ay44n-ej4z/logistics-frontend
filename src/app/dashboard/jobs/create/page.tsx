@@ -107,10 +107,15 @@ console.log(898989, portsResponse)
     },
   });
 
-  // Auto-generate job number on component mount
+  // Auto-generate job number and set current date on component mount
   useEffect(() => {
     const autoNumber = generateAutoNumber();
     setValue('job_number', autoNumber);
+    
+    // Set current date in YYYY-MM-DD format for the date input
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+    setValue('job_date', formattedDate);
   }, [setValue]);
 
   // Watch form values for controlled components

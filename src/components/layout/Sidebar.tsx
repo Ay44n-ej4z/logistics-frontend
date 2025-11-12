@@ -455,10 +455,11 @@ export default function Sidebar() {
 
   // Get role-based navigation items
   const navigationItems = getNavigationItems(user?.role || UserRole.ADMIN);
+  
   const handleItemClick = useCallback(
     (
       e: React.MouseEvent,
-      item: NavigationItem // adjust this type to match your interface
+      item: NavigationItem
     ) => {
       e.preventDefault();
       e.stopPropagation();
@@ -469,11 +470,10 @@ export default function Sidebar() {
             ? prev.filter((name) => name !== item.name)
             : [...prev, item.name]
         );
-      } else {
-        router.replace(item.href);
       }
+      // Removed else block with router.replace - now handled by Link component
     },
-    [router]
+    []
   );
   return (
     <motion.div
@@ -513,8 +513,9 @@ export default function Sidebar() {
           </div>
 
           {navigationItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+            const isActive = item.href === '/dashboard' 
+              ? pathname === '/dashboard'
+              : pathname === item.href || pathname.startsWith(item.href + "/");
             const isExpanded = expandedItems.includes(item.name);
             const hasActiveSubmenu = item.submenu?.some(
               (sub) => pathname === sub.href
@@ -522,37 +523,59 @@ export default function Sidebar() {
 
             return (
               <div key={item.name} className="relative group">
-                <div
-                  onClick={(e) => handleItemClick(e, item)} // ✅ Now we pass the item here
-                  className={`sidebar-item cursor-pointer ${
-                    isActive || hasActiveSubmenu
-                      ? "sidebar-item-active"
-                      : "sidebar-item-inactive"
-                  } ${isCollapsed ? "justify-center" : ""}`}
-                  title={isCollapsed ? item.name : ""}
-                >
-                  <Icon
-                    icon={item.icon}
-                    className={`${isCollapsed ? "w-6 h-6" : "w-5 h-5"} ${
+                {item.hasSubmenu ? (
+                  <div
+                    onClick={(e) => handleItemClick(e, item)}
+                    className={`sidebar-item cursor-pointer ${
                       isActive || hasActiveSubmenu
-                        ? "text-primary-600"
-                        : "text-gray-400"
-                    }`}
-                  />
-                  {!isCollapsed && (
-                    <>
-                      <span className="ml-3 flex-1">{item.name}</span>
-                      {item.hasSubmenu && (
+                        ? "sidebar-item-active"
+                        : "sidebar-item-inactive"
+                    } ${isCollapsed ? "justify-center" : ""}`}
+                    title={isCollapsed ? item.name : ""}
+                  >
+                    <Icon
+                      icon={item.icon}
+                      className={`${isCollapsed ? "w-6 h-6" : "w-5 h-5"} ${
+                        isActive || hasActiveSubmenu
+                          ? "text-primary-600"
+                          : "text-gray-400"
+                      }`}
+                    />
+                    {!isCollapsed && (
+                      <>
+                        <span className="ml-3 flex-1">{item.name}</span>
                         <Icon
                           icon="mdi:chevron-down"
                           className={`w-4 h-4 transition-transform duration-200 ${
                             isExpanded ? "rotate-180" : ""
                           }`}
                         />
-                      )}
-                    </>
-                  )}
-                </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className={`sidebar-item ${
+                      isActive || hasActiveSubmenu
+                        ? "sidebar-item-active"
+                        : "sidebar-item-inactive"
+                    } ${isCollapsed ? "justify-center" : ""}`}
+                    title={isCollapsed ? item.name : ""}
+                  >
+                    <Icon
+                      icon={item.icon}
+                      className={`${isCollapsed ? "w-6 h-6" : "w-5 h-5"} ${
+                        isActive || hasActiveSubmenu
+                          ? "text-primary-600"
+                          : "text-gray-400"
+                      }`}
+                    />
+                    {!isCollapsed && (
+                      <span className="ml-3 flex-1">{item.name}</span>
+                    )}
+                  </Link>
+                )}
 
                 {/* Tooltip on hover when collapsed */}
                 {isCollapsed && !isExpanded && (
@@ -622,9 +645,7 @@ export default function Sidebar() {
                                         ? "bg-primary-50 text-primary-700"
                                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                     }`}
-                                    onClick={() => {
-                                      if (isCollapsed) setExpandedItems([]);
-                                    }}
+                                    onClick={() => setExpandedItems([])}
                                   >
                                     {subItem.name}
                                   </div>
