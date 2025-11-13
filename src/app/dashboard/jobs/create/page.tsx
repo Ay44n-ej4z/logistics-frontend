@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Icon } from '@iconify/react';
@@ -14,17 +14,22 @@ import {
   useGetCarriersQuery, 
   useSearchCarriersQuery,
   useGetPortsAirportsQuery,
-  useSearchPortsAirportsQuery
+  useSearchPortsAirportsQuery,
+  useGetModesOfTransportQuery,
+  useSearchModesOfTransportQuery
 } from '@/store/api/masterDataApi';
 import { useGetUsersQuery } from '@/store/api/authApi';
+import { CarrierType, PortOrAirportType, TransportMode } from '@/types';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { useSearchableDropdown } from '@/hooks/useSearchableDropdown';
 import { generateAutoNumber } from '@/lib/generateNumber';
+import { JobType } from '@/types';
 
 
 const jobSchema = z.object({
   job_number: z.string().min(1, 'Job number is required'),
-  job_type: z.enum(['export', 'import']),
+  job_type: z.enum(['export', 'import', 'domestic']),
+  mode_of_transport_id: z.number().min(1, 'Mode of transport is required'),
   shipper_id: z.string().min(1, 'Shipper is required'),
   consignee_id: z.string().min(1, 'Consignee is required'),
   notify_party_id: z.string().optional(),
@@ -36,8 +41,16 @@ const jobSchema = z.object({
   sales_person_id: z.string().optional(),
   job_date: z.string().min(1, 'Job date is required'),
   status: z.enum(['open', 'invoiced', 'closed']).optional(),
-  gross_weight: z.number().optional(),
-  chargeable_weight: z.number().optional(),
+  gross_weight: z.number().refine((val) => {
+    if (val === undefined || val === null) return true;
+    const decimalPlaces = (val.toString().split('.')[1] || '').length;
+    return decimalPlaces <= 3;
+  }, { message: 'Maximum 3 decimal places allowed' }).optional(),
+  chargeable_weight: z.number().refine((val) => {
+    if (val === undefined || val === null) return true;
+    const decimalPlaces = (val.toString().split('.')[1] || '').length;
+    return decimalPlaces <= 3;
+  }, { message: 'Maximum 3 decimal places allowed' }).optional(),
   package_count: z.number().optional(),
   eta: z.string().optional(),
   etd: z.string().optional(),
@@ -54,12 +67,14 @@ export default function CreateJobPage() {
   const carriersSearch = useSearchableDropdown();
   const portsSearch = useSearchableDropdown();
   const usersSearch = useSearchableDropdown();
+  const modesSearch = useSearchableDropdown();
 
   // Fetch initial data for dropdowns
   const { data: partiesResponse } = useGetPartiesQuery({ page: 1, limit: 50 });
   const { data: carriersResponse } = useGetCarriersQuery({ page: 1, limit: 50 });
   const { data: portsResponse } = useGetPortsAirportsQuery({ page: 1, limit: 50 });
   const { data: usersResponse } = useGetUsersQuery({ page: 1, limit: 50 });
+  const { data: modesResponse } = useGetModesOfTransportQuery({ page: 1, limit: 50 });
 
   // Search queries
   const { data: searchPartiesResponse, isLoading: partiesLoading } = useSearchPartiesQuery(
@@ -74,14 +89,11 @@ export default function CreateJobPage() {
     { port_name: portsSearch.debouncedQuery, page: 1, page_size: 50 },
     { skip: !portsSearch.debouncedQuery }
   );
-console.log(898989, searchPartiesResponse)
-console.log(898989, searchCarriersResponse)
-console.log(898989, searchPortsResponse)
-console.log(898989, usersResponse)
+  const { data: searchModesResponse, isLoading: modesLoading } = useSearchModesOfTransportQuery(
+    { name: modesSearch.debouncedQuery, page: 1, page_size: 50 },
+    { skip: !modesSearch.debouncedQuery }
+  );
 
-console.log(898989, partiesResponse)
-console.log(898989, carriersResponse)
-console.log(898989, portsResponse)
   // Combine initial and search results
   const parties = (partiesSearch.debouncedQuery 
     ? searchPartiesResponse?.data.data || []
@@ -93,7 +105,11 @@ console.log(898989, portsResponse)
     ? searchPortsResponse?.data.data || []
     : portsResponse?.data.data || []);
   const users = Array.isArray(usersResponse?.data) ? usersResponse.data : usersResponse?.data?.data || [];
+  const modes = (modesSearch.debouncedQuery 
+    ? searchModesResponse?.data.data || []
+    : modesResponse?.data || []);
 
+  // Initialize form FIRST before using watch values
   const {
     register,
     handleSubmit,
@@ -107,6 +123,53 @@ console.log(898989, portsResponse)
     },
   });
 
+  // Watch form values for controlled components
+  const shipperId = watch('shipper_id');
+  const consigneeId = watch('consignee_id');
+  const notifyPartyId = watch('notify_party_id');
+  const carrierId = watch('carrier_id');
+  const modeOfTransportId = watch('mode_of_transport_id');
+  const originPortId = watch('origin_port_id');
+  const destinationPortId = watch('destination_port_id');
+  const loadingPortId = watch('loading_port_id');
+  const dischargePortId = watch('discharge_port_id');
+
+  // Get selected mode details
+  const selectedMode = modes.find((m: any) => m.id === modeOfTransportId);
+  const selectedModeType = selectedMode?.mode;
+
+  // Filter carriers based on transport mode
+  const filteredCarriers = useMemo(() => {
+    if (!selectedModeType) return carriers;
+    
+    if (selectedModeType === TransportMode.AIR) {
+      // Show only airlines when mode is AIR
+      return carriers.filter((carrier: any) => carrier.type === CarrierType.AIRLINE);
+    } else if (selectedModeType === TransportMode.FCL_SEA || selectedModeType === TransportMode.LCL_SEA) {
+      // Show only shipping lines when mode is SEA
+      return carriers.filter((carrier: any) => carrier.type === CarrierType.SHIPPING);
+    }
+    
+    // For TRUCK/TRAIN, show all carriers
+    return carriers;
+  }, [carriers, selectedModeType]);
+
+  // Filter ports based on transport mode
+  const filteredPorts = useMemo(() => {
+    if (!selectedModeType) return ports;
+    
+    if (selectedModeType === TransportMode.AIR) {
+      // Show only airports when mode is AIR
+      return ports.filter((port: any) => port.type === PortOrAirportType.AIRPORT);
+    } else if (selectedModeType === TransportMode.FCL_SEA || selectedModeType === TransportMode.LCL_SEA) {
+      // Show only seaports when mode is SEA
+      return ports.filter((port: any) => port.type === PortOrAirportType.PORT);
+    }
+    
+    // For TRUCK/TRAIN, show all ports/airports
+    return ports;
+  }, [ports, selectedModeType]);
+
   // Auto-generate job number and set current date on component mount
   useEffect(() => {
     const autoNumber = generateAutoNumber();
@@ -118,20 +181,32 @@ console.log(898989, portsResponse)
     setValue('job_date', formattedDate);
   }, [setValue]);
 
-  // Watch form values for controlled components
-  const shipperId = watch('shipper_id');
-  const consigneeId = watch('consignee_id');
-  const notifyPartyId = watch('notify_party_id');
-  const carrierId = watch('carrier_id');
-  const originPortId = watch('origin_port_id');
-  const destinationPortId = watch('destination_port_id');
-  const loadingPortId = watch('loading_port_id');
-  const dischargePortId = watch('discharge_port_id');
-
   const onSubmit = async (data: any) => {
     try {
-      console.log('Submitting job data:', data);
-      const result = await createJob(data).unwrap();
+      console.log('Raw form data:', data);
+      
+      // Clean up the data - remove empty strings and convert datetime-local to ISO format
+      const cleanedData = Object.entries(data).reduce((acc, [key, value]) => {
+        // Skip empty strings for optional fields
+        if (value === '' || value === null || value === undefined) {
+          return acc;
+        }
+        
+        // Convert datetime-local format to ISO 8601
+        if ((key === 'eta' || key === 'etd' || key === 'job_date') && typeof value === 'string') {
+          // datetime-local format: "2025-11-20T12:47"
+          // ISO 8601 format: "2025-11-20T12:47:00.000Z"
+          acc[key] = new Date(value).toISOString();
+        } else {
+          acc[key] = value;
+        }
+        
+        return acc;
+      }, {} as any);
+      
+      console.log('Cleaned data being sent:', cleanedData);
+      
+      const result = await createJob(cleanedData).unwrap();
       console.log('Job creation result:', result);
       
       // The API now returns { success: true, data: job, message: '...' }
@@ -170,8 +245,14 @@ console.log(898989, portsResponse)
         alert('Job created successfully, but could not redirect to AWB creation. Please go to House AWBs page to create manually.');
         router.push('/dashboard/jobs');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating job:', error);
+      console.error('Error details:', {
+        status: error?.status,
+        data: error?.data,
+        message: error?.data?.message,
+        errors: error?.data?.errors
+      });
     }
   };
 
@@ -223,10 +304,36 @@ console.log(898989, portsResponse)
                   <option value="">Select job type</option>
                   <option value="export">Export</option>
                   <option value="import">Import</option>
+                  <option value="domestic">Domestic</option>
                 </select>
                 {errors.job_type && (
                   <p className="mt-1 text-sm text-red-600">{errors.job_type.message}</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mode of Transport *
+                </label>
+                <SearchableDropdown
+                  options={modes.map((mode: any) => {
+                    console.log('Mapping mode:', mode);
+                    return { 
+                      id: String(mode.id), 
+                      name: `${mode.name} (${mode.code})` 
+                    };
+                  })}
+                  value={modeOfTransportId ? String(modeOfTransportId) : ''}
+                  onChange={(value) => {
+                    console.log('Mode selected:', value);
+                    setValue('mode_of_transport_id', value ? Number(value) : 0);
+                  }}
+                  placeholder="Select mode of transport"
+                  searchPlaceholder="Search modes..."
+                  onSearch={modesSearch.handleSearch}
+                  loading={modesLoading}
+                  error={errors.mode_of_transport_id?.message}
+                />
               </div>
 
               {/* Mode of Transport removed */}
@@ -338,7 +445,10 @@ console.log(898989, portsResponse)
                   Carrier *
                 </label>
                 <SearchableDropdown
-                  options={carriers.map((carrier: any) => ({ id: carrier.carrier_id, name: carrier.carrier_name }))}
+                  options={filteredCarriers.map((carrier: any) => ({ 
+                    id: carrier.carrier_id, 
+                    name: `${carrier.carrier_name} (${carrier.carrier_code})` 
+                  }))}
                   value={carrierId}
                   onChange={(value) => setValue('carrier_id', value ||'')}
                   placeholder="Select carrier"
@@ -351,16 +461,16 @@ console.log(898989, portsResponse)
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Origin Port *
+                  Origin Port / Airport / Place *
                 </label>
                 <SearchableDropdown
-                  options={ports.map((port: any) => ({ 
+                  options={filteredPorts.map((port: any) => ({ 
                     id: port.port_id, 
                     name: `${port.port_name} (${port.port_code})` 
                   }))}
                   value={originPortId}
                   onChange={(value) => setValue('origin_port_id', value || '')}
-                  placeholder="Select origin port"
+                  placeholder="Select origin port / airport / place"
                   searchPlaceholder="Search origin ports..."
                   onSearch={portsSearch.handleSearch}
                   loading={portsLoading}
@@ -370,16 +480,16 @@ console.log(898989, portsResponse)
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Destination Port *
+                  Destination Port / Airport / Place *
                 </label>
                 <SearchableDropdown
-                  options={ports.map((port: any) => ({ 
+                  options={filteredPorts.map((port: any) => ({ 
                     id: port.port_id, 
                     name: `${port.port_name} (${port.port_code})` 
                   }))}
                   value={destinationPortId}
                   onChange={(value) => setValue('destination_port_id', value || '')}
-                  placeholder="Select destination port"
+                  placeholder="Select destination port / airport / place"
                   searchPlaceholder="Search destination ports..."
                   onSearch={portsSearch.handleSearch}
                   loading={portsLoading}
@@ -389,17 +499,17 @@ console.log(898989, portsResponse)
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Loading Port
+                  Loading Port / Airport / Place
                 </label>
                 <SearchableDropdown
-                  options={ports.map((port: any) => ({ 
+                  options={filteredPorts.map((port: any) => ({ 
                     id: port.port_id, 
                     name: `${port.port_name} (${port.port_code})` 
                   }))}
                   value={loadingPortId || ''}
                   onChange={(value) => setValue('loading_port_id', value)}
-                  placeholder="Select loading port (optional)"
-                  searchPlaceholder="Search loading ports..."
+                  placeholder="Select loading port / airport / place (optional)"
+                  searchPlaceholder="Search loading ports / airports / places..."
                   onSearch={portsSearch.handleSearch}
                   loading={portsLoading}
                 />
@@ -407,17 +517,17 @@ console.log(898989, portsResponse)
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Discharge Port
+                  Discharge Port / Airport / Place
                 </label>
                 <SearchableDropdown
-                  options={ports.map((port: any) => ({ 
+                  options={filteredPorts.map((port: any) => ({ 
                     id: port.port_id, 
                     name: `${port.port_name} (${port.port_code})` 
                   }))}
                   value={dischargePortId || ''}
                   onChange={(value) => setValue('discharge_port_id', value)}
-                  placeholder="Select discharge port (optional)"
-                  searchPlaceholder="Search discharge ports..."
+                  placeholder="Select discharge port / airport / place (optional)"
+                  searchPlaceholder="Search discharge ports / airports / places..."
                   onSearch={portsSearch.handleSearch}
                   loading={portsLoading}
                 />
@@ -436,10 +546,13 @@ console.log(898989, portsResponse)
                 <input
                   {...register('gross_weight', { valueAsNumber: true })}
                   type="number"
-                  step="0.01"
+                  step="0.001"
                   className="input-field"
-                  placeholder="0.00"
+                  placeholder="0.000"
                 />
+                {errors.gross_weight && (
+                  <p className="mt-1 text-sm text-red-600">{errors.gross_weight.message}</p>
+                )}
               </div>
 
               <div>
@@ -449,10 +562,13 @@ console.log(898989, portsResponse)
                 <input
                   {...register('chargeable_weight', { valueAsNumber: true })}
                   type="number"
-                  step="0.01"
+                  step="0.001"
                   className="input-field"
-                  placeholder="0.00"
+                  placeholder="0.000"
                 />
+                {errors.chargeable_weight && (
+                  <p className="mt-1 text-sm text-red-600">{errors.chargeable_weight.message}</p>
+                )}
               </div>
 
               <div>

@@ -3,6 +3,41 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { Icon } from '@iconify/react';
+
+const getModeIcon = (mode: string) => {
+  switch (mode?.toLowerCase()) {
+    case 'air':
+      return 'mdi:airplane';
+    case 'fcl_sea':
+      return 'mdi:ferry';
+    case 'lcl_sea':
+      return 'mdi:ship-wheel';
+    case 'truck':
+      return 'mdi:truck';
+    case 'train':
+      return 'mdi:train';
+    default:
+      return 'mdi:help-circle';
+  }
+};
+
+const getModeBadgeColor = (mode: string) => {
+  switch (mode?.toLowerCase()) {
+    case 'air':
+      return 'bg-sky-100 text-sky-800';
+    case 'fcl_sea':
+      return 'bg-blue-100 text-blue-800';
+    case 'lcl_sea':
+      return 'bg-cyan-100 text-cyan-800';
+    case 'truck':
+      return 'bg-orange-100 text-orange-800';
+    case 'train':
+      return 'bg-purple-100 text-purple-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
 
 export const createJobsColumns = (router: AppRouterInstance): ColumnDef<unknown>[] => [
   {
@@ -28,6 +63,26 @@ export const createJobsColumns = (router: AppRouterInstance): ColumnDef<unknown>
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
           {jobType}
         </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'mode_of_transport',
+    header: 'Mode',
+    size: 100,
+    cell: ({ row }) => {
+      const modeOfTransport = (row.original as any).mode_of_transport;
+      const mode = modeOfTransport?.mode || '';
+      const name = modeOfTransport?.name || 'N/A';
+      const code = modeOfTransport?.code || '';
+      
+      return (
+        <div className="flex items-center gap-1.5">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getModeBadgeColor(mode)}`}>
+            <Icon icon={getModeIcon(mode)} className="w-3.5 h-3.5 mr-1" />
+            {code}
+          </span>
+        </div>
       );
     },
   },

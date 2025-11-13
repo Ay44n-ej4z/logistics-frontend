@@ -13,16 +13,14 @@ const getModeIcon = (mode: TransportMode) => {
   switch (mode) {
     case TransportMode.AIR:
       return 'mdi:airplane';
-    case TransportMode.SEA:
+    case TransportMode.FCL_SEA:
       return 'mdi:ferry';
-    case TransportMode.ROAD:
+    case TransportMode.LCL_SEA:
+      return 'mdi:ship-wheel';
+    case TransportMode.TRUCK:
       return 'mdi:truck';
-    case TransportMode.RAIL:
+    case TransportMode.TRAIN:
       return 'mdi:train';
-    case TransportMode.COURIER:
-      return 'mdi:package-variant';
-    case TransportMode.MULTIMODAL:
-      return 'mdi:transit-connection-variant';
     default:
       return 'mdi:swap-horizontal';
   }
@@ -32,16 +30,14 @@ const getModeBadgeColor = (mode: TransportMode) => {
   switch (mode) {
     case TransportMode.AIR:
       return 'bg-sky-100 text-sky-800';
-    case TransportMode.SEA:
+    case TransportMode.FCL_SEA:
       return 'bg-blue-100 text-blue-800';
-    case TransportMode.ROAD:
+    case TransportMode.LCL_SEA:
+      return 'bg-cyan-100 text-cyan-800';
+    case TransportMode.TRUCK:
       return 'bg-orange-100 text-orange-800';
-    case TransportMode.RAIL:
+    case TransportMode.TRAIN:
       return 'bg-purple-100 text-purple-800';
-    case TransportMode.COURIER:
-      return 'bg-pink-100 text-pink-800';
-    case TransportMode.MULTIMODAL:
-      return 'bg-indigo-100 text-indigo-800';
     default:
       return 'bg-gray-100 text-gray-800';
   }

@@ -241,9 +241,7 @@ export enum PartyType {
 
 export enum CarrierType {
   AIRLINE = 'airline',
-  SHIPPING_LINE = 'shipping_line',
-  TRUCKING = 'trucking',
-  RAILWAY = 'railway',
+  SHIPPING = 'shipping',
 }
 
 export enum PortOrAirportType {
@@ -253,11 +251,16 @@ export enum PortOrAirportType {
 
 export enum TransportMode {
   AIR = 'air',
-  SEA = 'sea',
-  ROAD = 'road',
-  RAIL = 'rail',
-  COURIER = 'courier',
-  MULTIMODAL = 'multimodal',
+  FCL_SEA = 'fcl_sea',
+  LCL_SEA = 'lcl_sea',
+  TRUCK = 'truck',
+  TRAIN = 'train',
+}
+
+export enum JobType {
+  EXPORT = 'export',
+  IMPORT = 'import',
+  DOMESTIC = 'domestic',
 }
 
 // Create DTOs

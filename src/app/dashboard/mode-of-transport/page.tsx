@@ -231,11 +231,10 @@ export default function ModeOfTransportPage() {
                 >
                   <option value="">Select mode...</option>
                   <option value={TransportMode.AIR}>Air</option>
-                  <option value={TransportMode.SEA}>Sea</option>
-                  <option value={TransportMode.ROAD}>Road</option>
-                  <option value={TransportMode.RAIL}>Rail</option>
-                  <option value={TransportMode.COURIER}>Courier</option>
-                  <option value={TransportMode.MULTIMODAL}>Multimodal</option>
+                  <option value={TransportMode.FCL_SEA}>FCL Sea</option>
+                  <option value={TransportMode.LCL_SEA}>LCL Sea</option>
+                  <option value={TransportMode.TRUCK}>Truck</option>
+                  <option value={TransportMode.TRAIN}>Train</option>
                 </select>
                 {errors.mode && (
                   <p className="mt-1 text-sm text-red-600">{errors.mode.message}</p>
