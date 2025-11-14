@@ -295,8 +295,11 @@ export const masterDataApi = createApi({
     }),
 
     // Mode of Transport
-    getModesOfTransport: builder.query<ApiResponse<ModeOfTransport[]>, void>({
-      query: () => '/master/mode-of-transport',
+    getModesOfTransport: builder.query<ApiResponse<ModeOfTransport[]>, PaginationParams>({
+      query: (params) => ({
+        url: '/master/mode-of-transport',
+        params,
+      }),
       providesTags: ['ModeOfTransport'],
     }),
     searchModesOfTransport: builder.query<any, ModeOfTransportSearchParams>({

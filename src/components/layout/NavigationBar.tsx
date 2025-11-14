@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Icon } from '@iconify/react';
@@ -35,6 +35,22 @@ export default function NavigationBar({ userRole }: NavigationBarProps) {
   const pathname = usePathname();
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [activeMasterModule, setActiveMasterModule] = useState<string | null>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setActiveSubmenu(null);
+        setActiveMasterModule(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const masterDataModules: MasterDataModule[] = [
     {
@@ -247,33 +263,47 @@ export default function NavigationBar({ userRole }: NavigationBarProps) {
   ];
 
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <nav className="bg-white border-b border-gray-200" ref={navRef}>
       <div className="max-w-full mx-auto px-4">
         {/* Use grid layout for mobile and flex-wrap for desktop */}
   <div className="flex justify-center flex-wrap items-center gap-2 sm:gap-3 py-3">
           {navigationItems.map((item) => (
             <div key={item.name} className="relative flex-shrink-0">
-              <button
-                onClick={() => item.hasSubmenu && setActiveSubmenu(activeSubmenu === item.name ? null : item.name)}
-                className={`inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap
-                  ${pathname.startsWith(item.href)
-                    ? "text-primary-600 bg-primary-50"
-                    : "text-gray-700 hover:text-primary-600 hover:bg-primary-50"
-                  }`}
-              >
-                <span className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200 shadow-sm">
-                  <Icon icon={item.icon} className="w-5 h-5 text-current" />
-                </span>
-                <span className="hidden sm:inline">{item.name}</span>
-                {item.hasSubmenu && (
+              {item.hasSubmenu ? (
+                <button
+                  onClick={() => setActiveSubmenu(activeSubmenu === item.name ? null : item.name)}
+                  className={`inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap
+                    ${(item.href !== '#' && ((item.href === '/dashboard' && pathname === '/dashboard') || (item.href !== '/dashboard' && pathname.startsWith(item.href))))
+                      ? "text-primary-600 bg-primary-50"
+                      : "text-gray-700 hover:text-primary-600 hover:bg-primary-50"
+                    }`}
+                >
+                  <span className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200 shadow-sm">
+                    <Icon icon={item.icon} className="w-5 h-5 text-current" />
+                  </span>
+                  <span className="hidden sm:inline">{item.name}</span>
                   <Icon
                     icon="mdi:chevron-down"
                     className={`hidden sm:inline w-4 h-4 transition-transform duration-200 ${
                       activeSubmenu === item.name ? "rotate-180" : ""
                     }`}
                   />
-                )}
-              </button>
+                </button>
+              ) : (
+                <Link
+                  href={item.href}
+                  className={`inline-flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap
+                    ${(item.href === '/dashboard' && pathname === '/dashboard') || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+                      ? "text-primary-600 bg-primary-50"
+                      : "text-gray-700 hover:text-primary-600 hover:bg-primary-50"
+                    }`}
+                >
+                  <span className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200 shadow-sm">
+                    <Icon icon={item.icon} className="w-5 h-5 text-current" />
+                  </span>
+                  <span className="hidden sm:inline">{item.name}</span>
+                </Link>
+              )}
 
               {/* Submenu dropdown */}
               {item.hasSubmenu && activeSubmenu === item.name && (
@@ -304,6 +334,10 @@ export default function NavigationBar({ userRole }: NavigationBarProps) {
                                     <Link
                                       key={subItem.href}
                                       href={subItem.href}
+                                      onClick={() => {
+                                        setActiveSubmenu(null);
+                                        setActiveMasterModule(null);
+                                      }}
                                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600"
                                     >
                                       {subItem.name}
@@ -320,6 +354,7 @@ export default function NavigationBar({ userRole }: NavigationBarProps) {
                         <Link
                           key={submenuItem.href}
                           href={submenuItem.href}
+                          onClick={() => setActiveSubmenu(null)}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600"
                         >
                           {submenuItem.name}

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Icon } from '@iconify/react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useGetJobByIdQuery, useGetJobsQuery } from '@/store/api/jobsApi';
@@ -12,7 +12,9 @@ import { useCreateMasterAwbMutation } from '@/store/api/masterAwbsApi';
 import { useGetHouseAwbsQuery } from '@/store/api/houseAwbsApi';
 import { 
   useGetCarriersQuery, 
-  useSearchCarriersQuery
+  useSearchCarriersQuery,
+  useGetCommoditiesQuery,
+  useSearchCommoditiesQuery
 } from '@/store/api/masterDataApi';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { useSearchableDropdown } from '@/hooks/useSearchableDropdown';
@@ -26,6 +28,22 @@ const masterAwbSchema = z.object({
   carrier_id: z.string().min(1, 'Carrier is required'),
   issue_date: z.string().min(1, 'Issue date is required'),
   status: z.enum(['draft', 'issued', 'cancelled']).optional(),
+  items: z.array(z.object({
+    commodity_id: z.string().min(1, 'Commodity is required'),
+    description: z.string().min(1, 'Description is required'),
+    quantity: z.number().min(0.01, 'Quantity must be greater than 0'),
+    unit: z.string().min(1, 'Unit is required'),
+    volume: z.number().optional(),
+    weight: z.number().refine((val) => {
+      if (val === undefined || val === null) return true;
+      const decimalPlaces = (val.toString().split('.')[1] || '').length;
+      return decimalPlaces <= 3;
+    }, { message: 'Maximum 3 decimal places allowed' }).optional(),
+    package_count: z.number().optional(),
+    package_type: z.string().optional(),
+    value: z.number().optional(),
+    currency: z.string().optional(),
+  })).optional(),
 });
 
 type MasterAwbFormData = z.infer<typeof masterAwbSchema>;
@@ -44,6 +62,7 @@ export default function CreateMasterAwbPage() {
 
   // Search hooks for dropdowns
   const carriersSearch = useSearchableDropdown();
+  const commoditiesSearch = useSearchableDropdown();
 
   // Fetch all jobs for dropdown
   const { data: jobsResponse } = useGetJobsQuery({
@@ -67,17 +86,25 @@ export default function CreateMasterAwbPage() {
 
   // Fetch initial data for dropdowns
   const { data: carriersResponse } = useGetCarriersQuery({ page: 1, limit: 50 });
+  const { data: commoditiesResponse } = useGetCommoditiesQuery({ page: 1, limit: 50 });
 
   // Search queries
   const { data: searchCarriersResponse, isLoading: carriersLoading } = useSearchCarriersQuery(
     { carrier_name: carriersSearch.debouncedQuery, page: 1, page_size: 50 },
     { skip: !carriersSearch.debouncedQuery }
   );
+  const { data: searchCommoditiesResponse, isLoading: commoditiesLoading } = useSearchCommoditiesQuery(
+    { commodity_name: commoditiesSearch.debouncedQuery, page: 1, page_size: 50 },
+    { skip: !commoditiesSearch.debouncedQuery }
+  );
 
   // Combine initial and search results
   const carriers = (carriersSearch.debouncedQuery 
     ? searchCarriersResponse?.data.data || []
     : carriersResponse?.data.data || []);
+  const commodities = (commoditiesSearch.debouncedQuery 
+    ? searchCommoditiesResponse?.data || []
+    : commoditiesResponse?.data.data || []) as any[];
 
   const {
     register,
@@ -85,12 +112,20 @@ export default function CreateMasterAwbPage() {
     formState: { errors },
     setValue,
     watch,
+    control,
   } = useForm<MasterAwbFormData>({
     resolver: zodResolver(masterAwbSchema),
     defaultValues: {
       status: 'draft',
       issue_date: new Date().toISOString().split('T')[0],
+      items: [],
     },
+  });
+
+  // useFieldArray for items
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'items',
   });
 
   // Watch form values
@@ -171,6 +206,18 @@ export default function CreateMasterAwbPage() {
         issue_date: data.issue_date,
         status: data.status || 'draft',
         house_awb_ids: selectedHouseAwbs, // Include selected house AWBs
+        items: data.items && data.items.length > 0 ? data.items.map((item: any) => ({
+          commodity_id: item.commodity_id,
+          description: item.description,
+          quantity: parseFloat(item.quantity),
+          unit: item.unit,
+          volume: item.volume ? parseFloat(item.volume) : undefined,
+          weight: item.weight ? parseFloat(item.weight) : undefined,
+          package_count: item.package_count ? parseInt(item.package_count) : undefined,
+          package_type: item.package_type || undefined,
+          value: item.value ? parseFloat(item.value) : undefined,
+          currency: item.currency || undefined,
+        })) : undefined,
       };
 
       const result = await createMasterAwb(apiData).unwrap();
@@ -185,6 +232,21 @@ export default function CreateMasterAwbPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const addItem = () => {
+    append({
+      commodity_id: '',
+      description: '',
+      quantity: 1,
+      unit: 'PCS',
+      volume: 0,
+      weight: 0,
+      package_count: 1,
+      package_type: '',
+      value: 0,
+      currency: 'USD',
+    });
   };
 
   const job = jobResponse?.data;
@@ -381,6 +443,170 @@ export default function CreateMasterAwbPage() {
                   <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Items Section */}
+          <div className="border-b border-gray-200 pb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Items (Optional)</h3>
+              <button
+                type="button"
+                onClick={addItem}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <Icon icon="mdi:plus" className="w-4 h-4 mr-1" />
+                Add Item
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Commodity *
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description *
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                      Quantity *
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                      Unit *
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                      Weight (kg)
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                      Volume (m³)
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                      Pkg Count
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                      Pkg Type
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                      Value
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                      Currency
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {fields.map((field, index) => (
+                    <tr key={field.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2">
+                        <select
+                          {...register(`items.${index}.commodity_id`)}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                          <option value="">Select</option>
+                          {commodities.map((commodity: any) => (
+                            <option key={commodity.commodity_id} value={commodity.commodity_id}>
+                              {commodity.commodity_name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="text"
+                          {...register(`items.${index}.description`)}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          placeholder="Description"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="text"
+                          {...register(`items.${index}.unit`)}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          placeholder="pcs"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          step="0.001"
+                          placeholder="0.000"
+                          {...register(`items.${index}.weight`, { valueAsNumber: true })}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          step="0.001"
+                          placeholder="0.000"
+                          {...register(`items.${index}.volume`, { valueAsNumber: true })}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          {...register(`items.${index}.package_count`, { valueAsNumber: true })}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="text"
+                          {...register(`items.${index}.package_type`)}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          placeholder="Box"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          {...register(`items.${index}.value`, { valueAsNumber: true })}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <select
+                          {...register(`items.${index}.currency`)}
+                          className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="GBP">GBP</option>
+                          <option value="INR">INR</option>
+                        </select>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {fields.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => remove(index)}
+                            className="inline-flex items-center p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                            title="Remove item"
+                          >
+                            <Icon icon="mdi:delete" className="h-5 w-5" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 

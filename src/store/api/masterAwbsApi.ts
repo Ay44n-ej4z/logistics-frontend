@@ -22,6 +22,22 @@ export interface MasterAwb {
   issue_date: string;
   status: 'draft' | 'issued' | 'cancelled';
   is_active: boolean;
+  items?: Array<{
+    item_id: string;
+    commodity_id: string;
+    commodity?: {
+      commodity_id: string;
+      commodity_name: string;
+      commodity_code: string;
+    };
+    description: string;
+    quantity: number;
+    unit: string;
+    weight?: number;
+    volume?: number;
+    value?: number;
+    package_type?: string;
+  }>;
 }
 
 export interface CreateMasterAwbRequest {
@@ -30,6 +46,16 @@ export interface CreateMasterAwbRequest {
   carrier_id: string;  // UUID
   issue_date: string;
   status?: 'draft' | 'issued' | 'cancelled';
+  items?: Array<{
+    commodity_id: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    weight?: number;
+    volume?: number;
+    value?: number;
+    package_type?: string;
+  }>;
 }
 
 export interface MasterAwbSearchParams {
