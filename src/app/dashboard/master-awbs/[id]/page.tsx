@@ -164,6 +164,74 @@ export default function MasterAwbDetailPage() {
         </div>
       </div>
 
+      {/* Items Section */}
+      {masterAwb.items && masterAwb.items.length > 0 && (
+        <div className="card">
+          <div className="border-b border-gray-200 pb-4 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Items</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Items directly attached to this Master AWB
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Commodity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Quantity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Weight
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Volume
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Packages
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Value
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {masterAwb.items.map((item: any, index: number) => (
+                  <tr key={item.item_id || index} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.commodity?.commodity_name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {item.description}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.quantity} {item.unit}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.weight ? `${item.weight} KG` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.volume ? `${item.volume} CBM` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.package_count ? `${item.package_count} ${item.package_type || ''}` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.value ? `${item.value} ${item.currency || ''}` : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* House AWBs Section */}
       <div className="card">
         <div className="border-b border-gray-200 pb-4 mb-4 flex items-center justify-between">

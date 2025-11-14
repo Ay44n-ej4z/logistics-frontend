@@ -22,12 +22,11 @@ import { useGetUsersQuery } from '@/store/api/authApi';
 import { CarrierType, PortOrAirportType, TransportMode } from '@/types';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
 import { useSearchableDropdown } from '@/hooks/useSearchableDropdown';
-import { generateAutoNumber } from '@/lib/generateNumber';
 import { JobType } from '@/types';
 
 
 const jobSchema = z.object({
-  job_number: z.string().min(1, 'Job number is required'),
+  job_number: z.string().optional(),
   job_type: z.enum(['export', 'import', 'domestic']),
   mode_of_transport_id: z.number().min(1, 'Mode of transport is required'),
   shipper_id: z.string().min(1, 'Shipper is required'),
@@ -170,11 +169,8 @@ export default function CreateJobPage() {
     return ports;
   }, [ports, selectedModeType]);
 
-  // Auto-generate job number and set current date on component mount
+  // Set current date on component mount
   useEffect(() => {
-    const autoNumber = generateAutoNumber();
-    setValue('job_number', autoNumber);
-    
     // Set current date in YYYY-MM-DD format for the date input
     const today = new Date();
     const formattedDate = today.toISOString().split('T')[0];
@@ -187,6 +183,11 @@ export default function CreateJobPage() {
       
       // Clean up the data - remove empty strings and convert datetime-local to ISO format
       const cleanedData = Object.entries(data).reduce((acc, [key, value]) => {
+        // Skip job_number - let backend auto-generate it
+        if (key === 'job_number') {
+          return acc;
+        }
+        
         // Skip empty strings for optional fields
         if (value === '' || value === null || value === undefined) {
           return acc;
@@ -283,17 +284,13 @@ export default function CreateJobPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Job Number *
+                  Job Number
                 </label>
-                <input
-                  {...register('job_number')}
-                  type="text"
-                  className="input-field"
-                  placeholder="Enter job number"
-                />
-                {errors.job_number && (
-                  <p className="mt-1 text-sm text-red-600">{errors.job_number.message}</p>
-                )}
+                <div className="input-field bg-gray-50 flex items-center">
+                  <Icon icon="mdi:auto-fix" className="w-4 h-4 text-gray-400 mr-2" />
+                  <span className="text-gray-500 text-sm">Auto-generated (e.g., OGL000001)</span>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Job number will be automatically assigned</p>
               </div>
 
               <div>
