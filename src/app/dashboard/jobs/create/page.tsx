@@ -21,6 +21,7 @@ import {
 import { useGetUsersQuery } from '@/store/api/authApi';
 import { CarrierType, PortOrAirportType, TransportMode } from '@/types';
 import SearchableDropdown from '@/components/common/SearchableDropdown';
+import QuickAddPartyModal from '@/components/common/QuickAddPartyModal';
 import { useSearchableDropdown } from '@/hooks/useSearchableDropdown';
 import { JobType } from '@/types';
 
@@ -60,6 +61,11 @@ type JobFormData = z.infer<typeof jobSchema>;
 export default function CreateJobPage() {
   const router = useRouter();
   const [createJob, { isLoading }] = useCreateJobMutation();
+  
+  // Modal state
+  const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
+  const [partyModalDefaultTypes, setPartyModalDefaultTypes] = useState<string[]>([]);
+  const [partyModalCallback, setPartyModalCallback] = useState<((id: string) => void) | null>(null);
 
   // Search hooks for each dropdown
   const partiesSearch = useSearchableDropdown();
@@ -72,7 +78,7 @@ export default function CreateJobPage() {
   const { data: partiesResponse } = useGetPartiesQuery({ page: 1, limit: 50 });
   const { data: carriersResponse } = useGetCarriersQuery({ page: 1, limit: 50 });
   const { data: portsResponse } = useGetPortsAirportsQuery({ page: 1, limit: 50 });
-  const { data: usersResponse } = useGetUsersQuery({ page: 1, limit: 50 });
+  const { data: usersResponse } = useGetUsersQuery({ page: 1, limit: 50, is_sales_person: true });
   const { data: modesResponse } = useGetModesOfTransportQuery({ page: 1, limit: 50 });
 
   // Search queries
@@ -176,6 +182,27 @@ export default function CreateJobPage() {
     const formattedDate = today.toISOString().split('T')[0];
     setValue('job_date', formattedDate);
   }, [setValue]);
+
+  // Handle "SAME AS CONSIGNEE" - auto-fill notify party when consignee changes
+  useEffect(() => {
+    // Only auto-fill if notify party is empty
+    if (consigneeId && !notifyPartyId) {
+      setValue('notify_party_id', consigneeId);
+    }
+  }, [consigneeId, notifyPartyId, setValue]);
+
+  // Helper functions for quick add party
+  const openPartyModal = (defaultTypes: string[], callback: (id: string) => void) => {
+    setPartyModalDefaultTypes(defaultTypes);
+    setPartyModalCallback(() => callback);
+    setIsPartyModalOpen(true);
+  };
+
+  const handlePartyModalSuccess = (partyId: string) => {
+    if (partyModalCallback) {
+      partyModalCallback(partyId);
+    }
+  };
 
   const onSubmit = async (data: any) => {
     try {
@@ -379,6 +406,8 @@ export default function CreateJobPage() {
                   onSearch={partiesSearch.handleSearch}
                   loading={partiesLoading}
                   error={errors.shipper_id?.message}
+                  onAddNew={() => openPartyModal(['shipper'], (id) => setValue('shipper_id', id))}
+                  addNewLabel="+ Add New Shipper"
                 />
               </div>
 
@@ -395,12 +424,15 @@ export default function CreateJobPage() {
                   onSearch={partiesSearch.handleSearch}
                   loading={partiesLoading}
                   error={errors.consignee_id?.message}
+                  onAddNew={() => openPartyModal(['consignee'], (id) => setValue('consignee_id', id))}
+                  addNewLabel="+ Add New Consignee"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Notify Party
+                  <span className="ml-2 text-xs text-gray-500">(defaults to same as consignee)</span>
                 </label>
                 <SearchableDropdown
                   options={parties.map((party: any) => ({ id: party.party_id, name: party.name }))}
@@ -410,6 +442,8 @@ export default function CreateJobPage() {
                   searchPlaceholder="Search notify parties..."
                   onSearch={partiesSearch.handleSearch}
                   loading={partiesLoading}
+                  onAddNew={() => openPartyModal(['notify_party'], (id) => setValue('notify_party_id', id))}
+                  addNewLabel="+ Add New Notify Party"
                 />
               </div>
 
@@ -679,6 +713,14 @@ export default function CreateJobPage() {
           </div>
         </form>
       </motion.div>
+
+      {/* Quick Add Party Modal */}
+      <QuickAddPartyModal
+        isOpen={isPartyModalOpen}
+        onClose={() => setIsPartyModalOpen(false)}
+        onSuccess={handlePartyModalSuccess}
+        defaultTypes={partyModalDefaultTypes}
+      />
     </div>
   );
 }

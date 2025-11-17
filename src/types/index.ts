@@ -71,7 +71,7 @@ export interface PartySearchParams {
   party_id?: number;
   name?: string;
   short_name?: string;
-  type?: PartyType;
+  party_type?: string;
   contact_person?: string;
   email?: string;
   page?: number;
@@ -108,6 +108,7 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   phone?: string;
+  is_sales_person?: boolean;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;
@@ -205,7 +206,7 @@ export interface Party {
   party_id: string;
   name: string;
   short_name?: string;
-  type: PartyType;
+  party_types: string[];
   billing_address?: string;
   corporate_address?: string;
   credit_limit: string;
@@ -235,7 +236,9 @@ export interface ModeOfTransport {
 export enum PartyType {
   CONSIGNEE = 'consignee',
   SHIPPER = 'shipper',
-  CARRIER = 'carrier',
+  NOTIFY_PARTY = 'notify_party',
+  LOCAL_CLIENT = 'local_client',
+  OVERSEAS_CLIENT = 'overseas_client',
   VENDOR = 'vendor',
 }
 
@@ -300,7 +303,7 @@ export interface CreateCommodityDto {
 export interface CreatePartyDto {
   name: string;
   short_name?: string;
-  type: PartyType;
+  party_types: string[];
   billing_address?: string;
   corporate_address?: string;
   credit_limit?: number;

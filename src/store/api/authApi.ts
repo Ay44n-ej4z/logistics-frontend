@@ -45,7 +45,7 @@ export const authApi = createApi({
       }),
       invalidatesTags: ['User'],
     }),
-    getUsers: builder.query<ApiResponse<PaginatedResponse<User>>, PaginationParams>({
+    getUsers: builder.query<ApiResponse<PaginatedResponse<User>>, PaginationParams & { is_sales_person?: boolean }>({
       query: (params) => ({
         url: '/users',
         params,
