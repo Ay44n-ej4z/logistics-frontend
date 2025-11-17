@@ -16,6 +16,8 @@ interface SearchableDropdownProps {
   className?: string;
   onSearch?: (query: string) => void;
   loading?: boolean;
+  onAddNew?: () => void;
+  addNewLabel?: string;
 }
 
 export default function SearchableDropdown({
@@ -31,6 +33,8 @@ export default function SearchableDropdown({
   className = '',
   onSearch,
   loading = false,
+  onAddNew,
+  addNewLabel = '+ Add New',
 }: SearchableDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -167,6 +171,22 @@ export default function SearchableDropdown({
                   {option[displayKey]}
                 </button>
               ))
+            )}
+            
+            {/* Add New Button */}
+            {onAddNew && !loading && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setSearchQuery('');
+                  onAddNew();
+                }}
+                className="w-full text-left px-4 py-2 border-t border-gray-200 bg-gray-50 hover:bg-gray-100 text-primary-600 font-medium flex items-center transition-colors"
+              >
+                <Icon icon="mdi:plus" className="w-4 h-4 mr-2" />
+                {addNewLabel}
+              </button>
             )}
           </div>
         </div>

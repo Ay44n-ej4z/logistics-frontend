@@ -59,9 +59,7 @@ export const createCommoditySchema = z.object({
 export const createPartySchema = z.object({
   name: z.string().min(2, 'Party name must be at least 2 characters'),
   short_name: z.string().optional(),
-  type: z.nativeEnum(PartyType, {
-    errorMap: () => ({ message: 'Invalid party type' }),
-  }),
+  party_types: z.array(z.string()).min(1, 'At least one party type is required'),
   billing_address: z.string().optional(),
   corporate_address: z.string().optional(),
   credit_limit: z.number().min(0, 'Credit limit must be non-negative').optional(),
@@ -70,7 +68,7 @@ export const createPartySchema = z.object({
   tds_applicable: z.boolean().optional(),
   contact_person: z.string().optional(),
   phone: z.string().optional(),
-  email: z.string().email('Invalid email address').optional(),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
 });
 
 export const createModeOfTransportSchema = z.object({

@@ -35,7 +35,11 @@ const houseAwbSchema = z.object({
     quantity: z.number().min(0.01, 'Quantity must be greater than 0'),
     unit: z.string().min(1, 'Unit is required'),
     volume: z.number().optional(),
-    weight: z.number().optional(),
+    weight: z.number().refine((val) => {
+      if (val === undefined || val === null) return true;
+      const decimalPlaces = (val.toString().split('.')[1] || '').length;
+      return decimalPlaces <= 3;
+    }, { message: 'Maximum 3 decimal places allowed' }).optional(),
     package_count: z.number().optional(),
     package_type: z.string().optional(),
     value: z.number().optional(),
@@ -537,7 +541,8 @@ export default function CreateHouseAwbPage() {
                       <td className="px-3 py-2">
                         <input
                           type="number"
-                          step="0.01"
+                          step="0.001"
+                          placeholder="0.000"
                           {...register(`items.${index}.weight`, { valueAsNumber: true })}
                           className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         />
@@ -545,7 +550,8 @@ export default function CreateHouseAwbPage() {
                       <td className="px-3 py-2">
                         <input
                           type="number"
-                          step="0.01"
+                          step="0.001"
+                          placeholder="0.000"
                           {...register(`items.${index}.volume`, { valueAsNumber: true })}
                           className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         />

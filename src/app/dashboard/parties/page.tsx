@@ -15,6 +15,7 @@ import { createPartiesColumns } from '@/components/master-data/columns/partiesCo
 export default function PartiesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingParty, setEditingParty] = useState<Party | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [searchParams, setSearchParams] = useState<PartySearchParams>({
     page: 1,
     page_size: 25,
@@ -39,16 +40,27 @@ export default function PartiesPage() {
     resolver: zodResolver(createPartySchema),
   });
 
+  const handleTypeToggle = (type: string) => {
+    const newTypes = selectedTypes.includes(type)
+      ? selectedTypes.filter(t => t !== type)
+      : [...selectedTypes, type];
+    
+    setSelectedTypes(newTypes);
+    setValue('party_types', newTypes);
+  };
+
   const onSubmit = async (data: CreatePartyFormData) => {
     try {
+      const submitData = { ...data, party_types: selectedTypes };
       if (editingParty) {
-        await updateParty({ id: editingParty.party_id, data }).unwrap();
+        await updateParty({ id: editingParty.party_id, data: submitData }).unwrap();
         toast.success('Party updated successfully!');
       } else {
-        await createParty(data).unwrap();
+        await createParty(submitData).unwrap();
         toast.success('Party created successfully!');
       }
       reset();
+      setSelectedTypes([]);
       setShowForm(false);
       setEditingParty(null);
     } catch (error: any) {
@@ -58,9 +70,10 @@ export default function PartiesPage() {
 
   const handleEdit = useCallback((party: Party) => {
     setEditingParty(party);
+    setSelectedTypes(party.party_types || []);
     setValue('name', party.name);
     setValue('short_name', party.short_name || '');
-    setValue('type', party.type as any);
+    setValue('party_types', party.party_types || []);
     setValue('contact_person', party.contact_person || '');
     setValue('email', party.email || '');
     setValue('phone', party.phone || '');
@@ -86,6 +99,7 @@ export default function PartiesPage() {
 
   const handleCancelEdit = () => {
     setEditingParty(null);
+    setSelectedTypes([]);
     setShowForm(false);
     reset();
   };
@@ -131,6 +145,7 @@ export default function PartiesPage() {
           whileTap={{ scale: 0.98 }}
           onClick={() => {
             setEditingParty(null);
+            setSelectedTypes([]);
             reset();
             setShowForm(!showForm);
           }}
@@ -153,6 +168,47 @@ export default function PartiesPage() {
             {editingParty ? 'Edit Party' : 'Add New Party'}
           </h3>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Party Types - Multi-select checkboxes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Party Types * <span className="text-xs text-gray-500">(Select all that apply)</span>
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {Object.values(PartyType).map((type) => {
+                  const typeLabels: Record<string, string> = {
+                    [PartyType.SHIPPER]: 'Shipper',
+                    [PartyType.CONSIGNEE]: 'Consignee',
+                    [PartyType.NOTIFY_PARTY]: 'Notify Party',
+                    [PartyType.LOCAL_CLIENT]: 'Local Client',
+                    [PartyType.OVERSEAS_CLIENT]: 'Overseas Client',
+                    [PartyType.VENDOR]: 'Vendor',
+                  };
+
+                  return (
+                    <label
+                      key={type}
+                      className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                        selectedTypes.includes(type)
+                          ? 'border-primary-500 bg-primary-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTypes.includes(type)}
+                        onChange={() => handleTypeToggle(type)}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-900">{typeLabels[type]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {errors.party_types && (
+                <p className="mt-1 text-sm text-red-600">{errors.party_types.message}</p>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -177,23 +233,6 @@ export default function PartiesPage() {
                   className="input-field"
                   placeholder="Enter short name"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type *
-                </label>
-                <select {...register('type')} className="input-field">
-                  <option value="">Select type</option>
-                  {Object.values(PartyType).map((type) => (
-                    <option key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </option>
-                  ))}
-                </select>
-                {errors.type && (
-                  <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
-                )}
               </div>
 
               <div>
