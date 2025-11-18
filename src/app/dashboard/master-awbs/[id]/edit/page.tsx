@@ -1,13 +1,26 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeftIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useGetMasterAwbByIdQuery, useUpdateMasterAwbMutation } from '@/store/api/masterAwbsApi';
 import { useGetJobsQuery } from '@/store/api/jobsApi';
-import { useGetCarriersQuery } from '@/store/api/masterDataApi';
-import { useForm } from 'react-hook-form';
+import { useGetCarriersQuery, useSearchCommoditiesQuery } from '@/store/api/masterDataApi';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/useToast';
+
+interface ItemFormData {
+  commodity_id: string;
+  description: string;
+  quantity: string;
+  unit: string;
+  volume?: string;
+  weight?: string;
+  package_count?: number;
+  package_type?: string;
+  value?: string;
+  currency?: string;
+}
 
 interface MasterAwbFormData {
   master_number: string;
@@ -15,6 +28,7 @@ interface MasterAwbFormData {
   carrier_id: string;
   issue_date: string;
   status: 'draft' | 'issued' | 'cancelled';
+  items: ItemFormData[];
 }
 
 export default function EditMasterAwbPage() {
@@ -35,35 +49,84 @@ export default function EditMasterAwbPage() {
   const { data: carriersResponse, isLoading: isLoadingCarriers } = useGetCarriersQuery({});
   const carriers = useMemo(() => (carriersResponse?.data as any)?.data || carriersResponse?.data || [], [carriersResponse]);
 
-  const [updateMasterAwb] = useUpdateMasterAwbMutation();
+  // Fetch commodities for dropdown
+  const { data: commoditiesResponse } = useSearchCommoditiesQuery({});
+  const commodities = commoditiesResponse?.data.data || [];
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<MasterAwbFormData>({
+  const [updateMasterAwb, { isLoading: isUpdating }] = useUpdateMasterAwbMutation();
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<MasterAwbFormData>({
     defaultValues: {
       master_number: '',
       job_id: '',
       carrier_id: '',
       issue_date: '',
       status: 'draft',
+      items: [],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'items',
   });
 
   useEffect(() => {
     if (masterAwb) {
-      reset({
-        master_number: masterAwb.master_number,
-        job_id: masterAwb.job_id,
-        carrier_id: masterAwb.carrier_id,
-        issue_date: masterAwb.issue_date.split('T')[0], // Format date for input
-        status: masterAwb.status,
-      });
+      setValue('master_number', masterAwb.master_number);
+      setValue('job_id', masterAwb.job_id);
+      setValue('carrier_id', masterAwb.carrier_id);
+      setValue('issue_date', masterAwb.issue_date.split('T')[0]);
+      setValue('status', masterAwb.status);
+      
+      // Load existing items
+      if (masterAwb.items && masterAwb.items.length > 0) {
+        setValue('items', masterAwb.items.map((item: any) => ({
+          commodity_id: item.commodity_id.toString(),
+          description: item.description,
+          quantity: item.quantity.toString(),
+          unit: item.unit,
+          volume: item.volume?.toString() || '',
+          weight: item.weight?.toString() || '',
+          package_count: item.package_count || undefined,
+          package_type: item.package_type || '',
+          value: item.value?.toString() || '',
+          currency: item.currency || '',
+        })));
+      }
     }
-  }, [masterAwb, reset]);
+  }, [masterAwb, setValue]);
 
   const onSubmit = async (data: MasterAwbFormData) => {
     try {
       await updateMasterAwb({
         id: masterAwbId,
-        data,
+        data: {
+          master_number: data.master_number,
+          job_id: data.job_id,
+          carrier_id: data.carrier_id,
+          issue_date: data.issue_date,
+          status: data.status,
+          items: data.items?.map(item => ({
+            commodity_id: item.commodity_id,
+            description: item.description,
+            quantity: Number(item.quantity),
+            unit: item.unit,
+            volume: item.volume ? Number(item.volume) : undefined,
+            weight: item.weight ? Number(item.weight) : undefined,
+            package_count: item.package_count || undefined,
+            package_type: item.package_type || undefined,
+            value: item.value ? Number(item.value) : undefined,
+            currency: item.currency || undefined,
+          })),
+        },
       }).unwrap();
 
       toast.success('Master AWB updated successfully!');
@@ -71,6 +134,21 @@ export default function EditMasterAwbPage() {
     } catch (error: any) {
       toast.error(error?.data?.message || 'Failed to update Master AWB');
     }
+  };
+
+  const addItem = () => {
+    append({
+      commodity_id: '',
+      description: '',
+      quantity: '',
+      unit: 'pcs',
+      volume: '',
+      weight: '',
+      package_count: undefined,
+      package_type: '',
+      value: '',
+      currency: 'USD',
+    });
   };
 
   if (isLoadingMasterAwb || isLoadingJobs || isLoadingCarriers) {
@@ -237,6 +315,184 @@ export default function EditMasterAwbPage() {
         </div>
       </div>
 
+      {/* Items */}
+      <div className="card">
+        <div className="border-b border-gray-200 pb-4 mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Items</h2>
+            <p className="text-sm text-gray-500 mt-1">Add or modify items for this Master AWB</p>
+          </div>
+          <button
+            type="button"
+            onClick={addItem}
+            className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Item
+          </button>
+        </div>
+
+        {fields.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 mb-4">No items added yet</p>
+            <button
+              type="button"
+              onClick={addItem}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add First Item
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Commodity *
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Description *
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                    Quantity *
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                    Unit *
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                    Weight (kg)
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                    Volume (m³)
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                    Pkg Count
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                    Pkg Type
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                    Value
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                    Currency
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {fields.map((field, index) => (
+                  <tr key={field.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2">
+                      <select
+                        {...register(`items.${index}.commodity_id`, {
+                          required: 'Commodity is required',
+                        })}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      >
+                        <option value="">Select</option>
+                        {commodities.map((commodity: any) => (
+                          <option key={commodity.commodity_id} value={commodity.commodity_id}>
+                            {commodity.commodity_name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        {...register(`items.${index}.description`, {
+                          required: 'Description is required',
+                        })}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Description"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        {...register(`items.${index}.quantity`, {
+                          required: 'Quantity is required',
+                        })}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        {...register(`items.${index}.unit`, {
+                          required: 'Unit is required',
+                        })}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="pcs"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        {...register(`items.${index}.weight`)}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        {...register(`items.${index}.volume`)}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        {...register(`items.${index}.package_count`)}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        {...register(`items.${index}.package_type`)}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Box"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        {...register(`items.${index}.value`)}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="text"
+                        {...register(`items.${index}.currency`)}
+                        className="block w-full text-sm rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="USD"
+                      />
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="inline-flex items-center p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                        title="Remove item"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Form Actions */}
       <div className="flex items-center justify-end space-x-4">
         <button
@@ -248,10 +504,11 @@ export default function EditMasterAwbPage() {
         </button>
         <button
           type="submit"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          disabled={isUpdating}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <PencilIcon className="h-4 w-4 mr-2" />
-          Update Master AWB
+          {isUpdating ? 'Updating...' : 'Update Master AWB'}
         </button>
       </div>
     </form>
