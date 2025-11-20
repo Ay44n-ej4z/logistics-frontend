@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 // List of query operations that should not trigger toasts (background/read operations)
 const SILENT_OPERATIONS = [
   'login',
-  'getProfile',
+  'getProfile', 
   'refreshToken',
   'getUsers',
   'getUserById',
