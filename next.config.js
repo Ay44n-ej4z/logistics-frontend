@@ -4,10 +4,8 @@ const nextConfig = {
     domains: ['localhost'],
   },
   env: {
-    NEXT_PUBLIC_API_URL: 'http://localhost:3000/api/v1',
+    NEXT_PUBLIC_API_URL: '/api/proxy/api/v1',
   },
 };
 
-
 module.exports = nextConfig;
-
