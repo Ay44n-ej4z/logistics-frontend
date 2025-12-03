@@ -394,9 +394,19 @@ export default function CreateJobPage() {
             <h3 className="text-lg font-medium text-gray-900 mb-4">Parties</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Shipper *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Shipper *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => openPartyModal(['shipper'], (id) => setValue('shipper_id', id))}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                  >
+                    <Icon icon="mdi:plus-circle" className="w-4 h-4 mr-1" />
+                    Add New
+                  </button>
+                </div>
                 <SearchableDropdown
                   options={parties.map((party: any) => ({ id: party.party_id, name: party.name }))}
                   value={shipperId}
@@ -406,15 +416,23 @@ export default function CreateJobPage() {
                   onSearch={partiesSearch.handleSearch}
                   loading={partiesLoading}
                   error={errors.shipper_id?.message}
-                  onAddNew={() => openPartyModal(['shipper'], (id) => setValue('shipper_id', id))}
-                  addNewLabel="+ Add New Shipper"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Consignee *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Consignee *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => openPartyModal(['consignee'], (id) => setValue('consignee_id', id))}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                  >
+                    <Icon icon="mdi:plus-circle" className="w-4 h-4 mr-1" />
+                    Add New
+                  </button>
+                </div>
                 <SearchableDropdown
                   options={parties.map((party: any) => ({ id: party.party_id, name: party.name }))}
                   value={consigneeId}
@@ -424,16 +442,24 @@ export default function CreateJobPage() {
                   onSearch={partiesSearch.handleSearch}
                   loading={partiesLoading}
                   error={errors.consignee_id?.message}
-                  onAddNew={() => openPartyModal(['consignee'], (id) => setValue('consignee_id', id))}
-                  addNewLabel="+ Add New Consignee"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notify Party
-                  <span className="ml-2 text-xs text-gray-500">(defaults to same as consignee)</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Notify Party
+                    <span className="ml-2 text-xs text-gray-500">(defaults to same as consignee)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => openPartyModal(['notify_party'], (id) => setValue('notify_party_id', id))}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                  >
+                    <Icon icon="mdi:plus-circle" className="w-4 h-4 mr-1" />
+                    Add New
+                  </button>
+                </div>
                 <SearchableDropdown
                   options={parties.map((party: any) => ({ id: party.party_id, name: party.name }))}
                   value={notifyPartyId || ''}
@@ -442,8 +468,6 @@ export default function CreateJobPage() {
                   searchPlaceholder="Search notify parties..."
                   onSearch={partiesSearch.handleSearch}
                   loading={partiesLoading}
-                  onAddNew={() => openPartyModal(['notify_party'], (id) => setValue('notify_party_id', id))}
-                  addNewLabel="+ Add New Notify Party"
                 />
               </div>
 
