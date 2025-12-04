@@ -25,9 +25,9 @@ import { generateAutoNumber } from '@/lib/generateNumber';
 const masterAwbSchema = z.object({
   master_number: z.string().min(1, 'Master AWB number is required'),
   job_id: z.string().min(1, 'Job is required'),
-  carrier_id: z.string().min(1, 'Carrier is required'),
+  // carrier_id: z.string().min(1, 'Carrier is required'),
   issue_date: z.string().min(1, 'Issue date is required'),
-  status: z.enum(['draft', 'issued', 'cancelled']).optional(),
+  // status: z.enum(['draft', 'issued', 'cancelled']).optional(),
   items: z.array(z.object({
     commodity_id: z.string().min(1, 'Commodity is required'),
     description: z.string().min(1, 'Description is required'),
@@ -116,7 +116,7 @@ export default function CreateMasterAwbPage() {
   } = useForm<MasterAwbFormData>({
     resolver: zodResolver(masterAwbSchema),
     defaultValues: {
-      status: 'draft',
+      // status: 'draft', // Commented out with status field
       issue_date: new Date().toISOString().split('T')[0],
       items: [],
     },
@@ -129,7 +129,8 @@ export default function CreateMasterAwbPage() {
   });
 
   // Watch form values
-  const carrierId = watch('carrier_id');
+  // Commenting out carrier watch while this field is temporarily removed from the UI
+  // const carrierId = watch('carrier_id');
 
   // Auto-generate master AWB number on component mount
   useEffect(() => {
@@ -202,9 +203,9 @@ export default function CreateMasterAwbPage() {
       const apiData = {
         job_id: selectedJobId || '',
         master_number: data.master_number,
-        carrier_id: data.carrier_id,
+        // carrier_id: data.carrier_id,
         issue_date: data.issue_date,
-        status: data.status || 'draft',
+        // status: data.status || 'draft',
         house_awb_ids: selectedHouseAwbs, // Include selected house AWBs
         items: data.items && data.items.length > 0 ? data.items.map((item: any) => ({
           commodity_id: item.commodity_id,
@@ -220,7 +221,7 @@ export default function CreateMasterAwbPage() {
         })) : undefined,
       };
 
-      const result = await createMasterAwb(apiData).unwrap();
+      const result = await createMasterAwb(apiData as any).unwrap();
       
       console.log('Master AWB created successfully:', result);
       
@@ -411,6 +412,7 @@ export default function CreateMasterAwbPage() {
 
               {/* Mode of Transport removed */}
 
+              {/*
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Carrier *
@@ -426,7 +428,9 @@ export default function CreateMasterAwbPage() {
                   error={errors.carrier_id?.message}
                 />
               </div>
+              */}
 
+              {/*
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Status
@@ -443,6 +447,7 @@ export default function CreateMasterAwbPage() {
                   <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>
                 )}
               </div>
+              */}
             </div>
           </div>
 

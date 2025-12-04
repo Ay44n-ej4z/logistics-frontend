@@ -25,8 +25,8 @@ const houseAwbSchema = z.object({
   house_number: z.string().min(1, 'House AWB number is required'),
   job_id: z.string().min(1, 'Job is required'),
   master_id: z.string().optional(),
-  shipper_id: z.string().min(1, 'Shipper is required'),
-  consignee_id: z.string().min(1, 'Consignee is required'),
+  // shipper_id: z.string().min(1, 'Shipper is required'),
+  // consignee_id: z.string().min(1, 'Consignee is required'),
   issue_date: z.string().min(1, 'Issue date is required'),
   status: z.enum(['draft', 'issued', 'cancelled']).optional(),
   items: z.array(z.object({
@@ -130,8 +130,9 @@ export default function CreateHouseAwbPage() {
   });
 
   // Watch form values
-  const shipperId = watch('shipper_id');
-  const consigneeId = watch('consignee_id');
+  // Commenting out shipper/consignee watches while these fields are temporarily removed from the UI
+  // const shipperId = watch('shipper_id');
+  // const consigneeId = watch('consignee_id');
 
   // Auto-generate house AWB number on component mount
   useEffect(() => {
@@ -172,10 +173,10 @@ export default function CreateHouseAwbPage() {
       const apiData = {
         job_id: data.job_id,
         house_number: data.house_number,
-        shipper_id: data.shipper_id,
-        consignee_id: data.consignee_id,
+        // shipper_id: data.shipper_id,
+        // consignee_id: data.consignee_id,
         issue_date: data.issue_date,
-        status: data.status || 'draft',
+        // status: data.status || 'draft',
         master_id: data.master_id || undefined,
         items: data.items.map(item => ({
           commodity_id: item.commodity_id,
@@ -192,7 +193,7 @@ export default function CreateHouseAwbPage() {
       };
       
       console.log('API payload:', apiData);
-      const result = await createHouseAwb(apiData).unwrap();
+      const result = await createHouseAwb(apiData as any).unwrap();
       console.log('House AWB created successfully:', result);
       
       router.push('/dashboard/house-awbs');
@@ -400,6 +401,7 @@ export default function CreateHouseAwbPage() {
 
               {/* Mode of Transport removed */}
 
+              {/*
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Shipper *
@@ -415,7 +417,9 @@ export default function CreateHouseAwbPage() {
                   error={errors.shipper_id?.message}
                 />
               </div>
+              */}
 
+              {/*
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Consignee *
@@ -431,7 +435,9 @@ export default function CreateHouseAwbPage() {
                   error={errors.consignee_id?.message}
                 />
               </div>
+              */}
 
+              {/*
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Status
@@ -442,6 +448,7 @@ export default function CreateHouseAwbPage() {
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
+              */}
             </div>
           </div>
 
