@@ -9,6 +9,7 @@
     "start": "next start -p 3001",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "test": "echo \"No tests configured\"",
     "api": "npx @openapitools/openapi-generator-cli generate -g typescript-axios -i api-docs/openapi.json -o src/api --global-property skipFormModel=false",
     "pre-checks": "npm run prettier && npm run lint:fix && npm run build",
     "prepare": "husky"

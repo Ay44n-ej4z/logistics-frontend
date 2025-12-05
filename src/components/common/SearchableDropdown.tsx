@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Icon } from '@iconify/react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface Option {
+  id: string;
+  name: string;
+  code?: string;
+  email?: string;
+  type?: string;
+  [key: string]: any;
+}
 
 interface SearchableDropdownProps {
   options: Array<{ id: string; name: string; [key: string]: any }> | any;
@@ -18,6 +27,9 @@ interface SearchableDropdownProps {
   loading?: boolean;
   onAddNew?: () => void;
   addNewLabel?: string;
+  showCode?: boolean;
+  showEmail?: boolean;
+  showType?: boolean;
 }
 
 export default function SearchableDropdown({
@@ -34,7 +46,10 @@ export default function SearchableDropdown({
   onSearch,
   loading = false,
   onAddNew,
-  addNewLabel = '+ Add New',
+  addNewLabel = 'Add New',
+  showCode = false,
+  showEmail = false,
+  showType = false,
 }: SearchableDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -93,106 +108,167 @@ export default function SearchableDropdown({
     setSearchQuery('');
   };
 
-  const handleClear = () => {
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onChange(undefined);
     setSearchQuery('');
   };
 
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
-      <div
-        className={`input-field cursor-pointer flex items-center justify-between ${
-          error ? 'border-red-500' : ''
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      {/* Trigger Button - IDENTICAL TO NATIVE SELECT */}
+      <button
+        type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`
+          w-full px-4 py-3 rounded-lg border transition-all duration-200
+          flex items-center justify-between text-left
+          focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none
+          ${error 
+            ? 'border-red-300 bg-red-50 hover:border-red-400' 
+            : 'border-gray-300 bg-white hover:border-gray-400'
+          }
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          ${!selectedOption ? 'text-gray-500' : 'text-gray-900'}
+          appearance-none
+        `}
+        disabled={disabled}
       >
-        <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
+        <span className="truncate flex-1 text-left pr-6">
           {selectedOption ? selectedOption[displayKey] : placeholder}
         </span>
-        <div className="flex items-center space-x-1">
-          {selectedOption && !disabled && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClear();
-              }}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <Icon icon="mdi:close" className="w-4 h-4" />
-            </button>
-          )}
-          <Icon
-            icon={isOpen ? 'mdi:chevron-up' : 'mdi:chevron-down'}
-            className="w-4 h-4 text-gray-400"
-          />
+        
+        {/* ARROW - POSITIONED IDENTICALLY TO NATIVE SELECT */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+          <svg 
+            className="h-4 w-4 text-gray-400" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
-      </div>
+        
+        {/* Clear button - positioned over the arrow */}
+        {selectedOption && !disabled && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute inset-y-0 right-6 flex items-center pr-1 z-10"
+            title="Clear selection"
+          >
+            <svg className="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </button>
 
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
-          <div className="p-2 border-b border-gray-200">
-            <div className="relative">
-              <Icon
-                icon="mdi:magnify"
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
-              />
+      {/* Error Message */}
+      {error && (
+        <p className="mt-2 text-sm text-red-600">
+          {error}
+        </p>
+      )}
+
+      {/* Dropdown Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-hidden"
+            style={{ minWidth: '100%' }}
+          >
+            {/* Search Input */}
+            <div className="p-2 border-b border-gray-200">
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 bg-white text-gray-900"
               />
             </div>
-          </div>
 
-          <div className="max-h-48 overflow-y-auto">
-            {loading ? (
-              <div className="p-4 text-center text-gray-500">
-                <Icon icon="mdi:loading" className="animate-spin w-5 h-5 mx-auto mb-2" />
-                Loading...
+            {/* Loading State */}
+            {loading && (
+              <div className="p-4 text-center">
+                <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-sm text-gray-500">Loading...</p>
               </div>
-            ) : filteredOptions.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
-                {searchQuery ? 'No results found' : 'No options available'}
-              </div>
-            ) : (
-              filteredOptions.map((option: any) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => handleSelect(option)}
-                  className={`w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ${
-                    value === option.id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
-                  }`}
-                >
-                  {option[displayKey]}
-                </button>
-              ))
             )}
-            
-            {/* Add New Button */}
-            {onAddNew && !loading && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  setSearchQuery('');
-                  onAddNew();
-                }}
-                className="w-full text-left px-4 py-2 border-t border-gray-200 bg-gray-50 hover:bg-gray-100 text-primary-600 font-medium flex items-center transition-colors"
-              >
-                <Icon icon="mdi:plus" className="w-4 h-4 mr-2" />
-                {addNewLabel}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+            {/* Options List */}
+            {!loading && (
+              <div className="max-h-60 overflow-y-auto">
+                {filteredOptions.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <p className="text-sm text-gray-500">
+                      {searchQuery ? 'No results found' : 'No options available'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredOptions.map((option: any) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => handleSelect(option)}
+                      className={`
+                        w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 
+                        focus:outline-none transition-colors duration-150 border-b border-gray-100 last:border-b-0
+                        ${value === option.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}
+                        focus:ring-2 focus:ring-blue-500
+                      `}
+                    >
+                      <div className="flex flex-col">
+                        <div className="font-medium">{option[displayKey]}</div>
+                        {(showCode && option.code) && (
+                          <div className="text-xs text-gray-500 mt-1">Code: {option.code}</div>
+                        )}
+                        {(showEmail && option.email) && (
+                          <div className="text-xs text-gray-500 mt-1">{option.email}</div>
+                        )}
+                        {(showType && option.type) && (
+                          <div className="text-xs text-gray-500 mt-1 capitalize">
+                            Type: {option.type}
+                          </div>
+                        )}
+                      </div>
+                      {value === option.id && (
+                        <div className="mt-1 text-xs font-medium text-blue-600">
+                          Selected
+                        </div>
+                      )}
+                    </button>
+                  ))
+                )}
+
+                {/* Add New Button */}
+                {onAddNew && !loading && (
+                  <div className="border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(false);
+                        setSearchQuery('');
+                        onAddNew();
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none transition-colors duration-150 text-blue-600 font-medium focus:ring-2 focus:ring-blue-500"
+                    >
+                      + {addNewLabel}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
